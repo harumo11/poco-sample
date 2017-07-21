@@ -9,8 +9,8 @@
 - ファイル名のパターンマッチング(glob)によるファイルの発見
 - 一時ファイル
 
-# Path
-- 異なるOSはファイルやディレクトリの場所(いわゆるparh)を指定するために異なる記法を使います．
+# パス
+- 異なるOSはファイルやディレクトリの場所(いわゆるpath)を指定するために異なる記法を使います．
 - これによって異なるOSでファイルやディレクトリを操作することは難しくなっています．
 - POCOはこの違いを抽象化し，共通の概念に商店を当てて，様々な記法で使用できるクラスを提供します．
 - POCOは以下の記法をサポートしています．
@@ -18,7 +18,7 @@
  - Unix
  - OpenVMS
 
-# POCOにおける
+# POCOにおけるパス
 - POCOにおけるpathは以下の要素から構成されています．
  - 追加のノードの名前
    - Windowsにおいて，これは，コンピュータのUNC Pathの名前です．
@@ -92,7 +92,7 @@
 |Node Name | - |
 |Device Name | - |
 |Directory Line|usr,local,include,Poco|
-|File Name| index.html|
+|File Name| Foundation.h|
 |Rile Version| -|
 
 ---
@@ -121,7 +121,63 @@
 |File Name|POCO.H|
 |File Version| 2|
 
-# The Path Class
+# pathのクラス
 - ** Poco::Path**はPOCOにおけるpathを表します．
 - ** #include "Poco/Path.h**
-- ** Poco::Path**
+- ** Poco::Path**はファイルシステムにおいてパスが実際に存在するかどうかを感知しません
+- ** Poco::Path**は値セマンティクスをサポートします．(コピーコンストラクターが実行され，割り当てられます）
+     - 関係演算子は利用できません．
+
+# Pathの作成
+- pathを作成するには２つの方法があります．
+  - 最初から１つずつ，１つずつ作成する．
+  - pathを含む文字列を解析して作成する(pathのスタイルを以下から指定なければなりません）．
+    - PATH_UNIX
+    - PATH_WINDOWS
+    - PATH_VMS
+    - PATH_NATIVE(現在使用しているシステムの記法を使用する)
+    - PATH_GUESS(POCOライブラリに記法を理解させる)
+
+# 一からパスを作成する
+
+1. デフォルトコンストラクターを用いて，空のパスを作成します(相対パス）,つまり，コンストラクターがboolの引数を取るようにしてください(true = absolute, ** false = relative**).
+
+2. 必要に応じて，ノードとデバイスを設定するために以下のミューテータしてください
+** void setNode(const std::string& node)**
+** void setDevice(const std::string& device)**
+
+3. ディレクトリ名を加える．
+** void pushDirectory(const std::string& name)**
+
+4. ファイル名を設定する．
+** void setFileName(const std::string& name)**
+
+```cpp
+#include "Poco/Path.h"
+
+int main(int argc, char** argv)
+{
+	Poco::Path p(true); //パスは絶対パスで設定
+    p.setNode("VSM001");
+    p.setDevice("DSK001");
+    p.pushDirectory("POCO");
+    p.pushDirectory("INCLUDE");
+    p.pushDirectory("POCO");
+    p.pushDirectory("POCO");
+    p.setFileName("POCO.H");
+    
+    std::string s(p.toString(Poco::Path::Path_VMS)); // "VMS001::DSK001:[POCO.INCLUDE.POCO]POCO.H:
+    p.clear(); // 綺麗な状態にしてやり直します．
+    p.pushDirectory("projects");
+    p.pushDirectory("poco");
+    
+    s = p.toString(Poxo::Path::PATH_WINDOWS); // "projects\poco\"
+    s = p.toString(Poco::Path::PATH_UNIX);    // "projects/poco/"
+    s = p.toString(); // あなたの使用しているシステム次第
+    return 0;
+}
+```
+
+# Stringからパスを解析する
+
+- パスはstringから構築されるかもしれません(std::string,もしくはcスタイル)
